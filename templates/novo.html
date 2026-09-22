@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Novo Registro — Histórico de Manutenção{% endblock %}
+{% block content %}
+
+<form class="form-card" method="post">
+  <div>
+    <h1>Novo Registro de Ocorrência</h1>
+    <span class="subtitle">Preencha assim que atender a ligação do inquilino ou proprietário</span>
+  </div>
+
+  <div class="field-row">
+    <div class="field">
+      <label for="data">Data</label>
+      <input type="date" id="data" name="data" value="{{ hoje }}" required>
+    </div>
+    <div class="field">
+      <label for="codigo_contrato">Código do contrato</label>
+      <input type="text" id="codigo_contrato" name="codigo_contrato" placeholder="Ex.: 4521" required>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="imovel">Imóvel (endereço)</label>
+    <input type="text" id="imovel" name="imovel" placeholder="Ex.: Rua das Acácias, 123, apto 402">
+  </div>
+
+  <div class="field-row">
+    <div class="field" style="max-width: 170px;">
+      <label for="quem_ligou_tipo">Quem ligou</label>
+      <select id="quem_ligou_tipo" name="quem_ligou_tipo">
+        {% for opcao in quem_ligou_opcoes %}
+        <option value="{{ opcao }}">{{ opcao }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <span class="field-label small">Nome</span>
+      <input type="text" name="quem_ligou_nome" placeholder="Nome de quem ligou">
+    </div>
+    <div class="field">
+      <span class="field-label small">Telefone</span>
+      <input type="tel" name="quem_ligou_telefone" placeholder="(00) 00000-0000">
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="descricao">Descrição do problema</label>
+    <textarea id="descricao" name="descricao" rows="3" placeholder="Descreva o problema relatado..." required></textarea>
+  </div>
+
+  <div class="field">
+    <span class="field-label">Registrado por</span>
+    <select name="autor" required>
+      <option value="" disabled selected>Selecione quem está atendendo</option>
+      {% for pessoa in equipe %}
+      <option value="{{ pessoa }}">{{ pessoa }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="field">
+    <span class="field-label">Situação</span>
+    <div class="status-toggle">
+      <label class="resolvido">
+        <input type="radio" name="status" value="resolvido" onchange="toggleAcao()">
+        <span>Resolvido</span>
+      </label>
+      <label class="pendente">
+        <input type="radio" name="status" value="pendente" checked onchange="toggleAcao()">
+        <span>● Não resolvido</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="field acao-field show" id="acao-field">
+    <label for="acao_andamento">O que está sendo feito para resolver</label>
+    <textarea id="acao_andamento" name="acao_andamento" rows="2" placeholder="Ex.: encanador acionado, visita agendada..."></textarea>
+  </div>
+
+  <div class="form-footer">
+    <a href="{{ url_for('pendencias') }}" class="btn btn-ghost">Cancelar</a>
+    <button type="submit" class="btn btn-primary">Salvar no histórico</button>
+  </div>
+</form>
+
+<script>
+function toggleAcao() {
+  var pendente = document.querySelector('input[name="status"][value="pendente"]').checked;
+  document.getElementById('acao-field').classList.toggle('show', pendente);
+}
+</script>
+
+{% endblock %}
