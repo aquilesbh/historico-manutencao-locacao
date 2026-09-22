@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Histórico de Manutenção — Locação</title>
+<style>
+:root {
+  --bg: #F4F2ED;
+  --surface: #FFFFFF;
+  --border: #E3DFD6;
+  --text: #211E1A;
+  --muted: #75706A;
+  --muted-2: #A6A199;
+  --accent: #2F5D8A;
+  --accent-hover: #274d73;
+  --pending-bg: #FBEFE0;
+  --pending-text: #8A5A15;
+  --pending-strip: #C98A2E;
+  --pending-note-bg: #FBF3E7;
+  --pending-note-text: #5C4419;
+  --urgent-bg: #FFF6ED;
+  --urgent-border: #F0C68A;
+  --urgent-text: #B5480F;
+  --ok-bg: #E7F3EA;
+  --ok-text: #1E7A4C;
+  --ok-border: #BFE2CB;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+a { color: inherit; text-decoration: none; }
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 36px 32px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.topbar h1 { margin: 0; font-size: 24px; font-weight: 700; }
+.topbar .subtitle { font-size: 14px; color: var(--muted); margin-top: 4px; display: block; }
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.user-chip { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.user-chip img { width: 28px; height: 28px; border-radius: 50%; }
+.nav { display: flex; gap: 8px; margin-bottom: 4px; }
+.nav a { font-size: 13px; font-weight: 600; color: var(--muted); padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+.nav a.active, .nav a:hover { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn { border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 600; padding: 11px 18px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { opacity: 0.92; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); opacity: 1; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: #55514B; }
+.btn-sm { font-size: 12px; padding: 7px 12px; border-radius: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 999px; border: none; cursor: pointer; font-family: inherit; white-space: nowrap; }
+.pill-pendente { background: var(--pending-bg); color: var(--pending-text); }
+.pill-resolvido { background: var(--ok-bg); color: var(--ok-text); }
+.pill-urgente { background: var(--urgent-text); color: #fff; }
+.stats { display: flex; gap: 16px; flex-wrap: wrap; }
+.stat { flex: 1; min-width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px; }
+.stat.warn { border-color: var(--urgent-border); }
+.stat .value { font-size: 28px; font-weight: 700; }
+.stat.warn .value { color: var(--urgent-text); }
+.stat .label { font-size: 13px; color: var(--muted); }
+.filters { display: flex; gap: 12px; flex-wrap: wrap; }
+.filters input[type="text"], .filters select {
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 14px;
+  font-family: inherit; background: var(--surface); color: var(--text);
+}
+.filters input[type="text"] { flex-grow: 1; min-width: 220px; }
+.list { display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
+.card.urgent { background: var(--urgent-bg); border-color: var(--urgent-border); }
+.card-row { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+.card-meta { display: flex; flex-direction: column; gap: 3px; min-width: 170px; }
+.card-meta .contrato { font-size: 13px; font-weight: 700; color: var(--accent); }
+.card-meta .data { font-size: 13px; color: var(--muted-2); }
+.card-meta .quem { font-size: 12px; color: var(--muted-2); }
+.card-desc { flex-grow: 1; margin: 0; font-size: 15px; line-height: 1.5; min-width: 220px; }
+.card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.card form { margin: 0; }
+.note-box { background: var(--pending-note-bg); border-left: 3px solid var(--pending-strip); padding: 10px 14px; border-radius: 8px; }
+.note-box .label { font-size: 11px; font-weight: 700; letter-spacing: 0.03em; color: var(--pending-text); }
+.note-box p { margin: 4px 0 0; font-size: 13px; color: var(--pending-note-text); }
+.note-form { display: flex; gap: 8px; align-items: flex-end; margin-top: 4px; }
+.note-form textarea { flex-grow: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-family: inherit; font-size: 13px; resize: vertical; min-height: 40px; }
+.empty { text-align: center; color: var(--muted); font-size: 14px; padding: 40px 0; }
+.form-card { max-width: 560px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; gap: 20px; }
+.form-card h1 { margin: 0; font-size: 19px; font-weight: 700; }
+.form-card .subtitle { font-size: 13px; color: var(--muted); }
+.field-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.field { flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 6px; }
+.field label, .field .field-label { font-size: 12px; font-weight: 600; color: #55514B; }
+.field .field-label.small { font-size: 11px; color: var(--muted-2); font-weight: 500; }
+.field input, .field select, .field textarea {
+  border: 1px solid #DEDACF; border-radius: 8px; padding: 10px 12px; font-size: 14px;
+  font-family: inherit; color: var(--text); background: #fff;
+}
+.field textarea { resize: vertical; }
+.status-toggle { display: flex; gap: 10px; }
+.status-toggle label { flex: 1; text-align: center; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; font-weight: 600; color: #55514B; background: var(--bg); cursor: pointer; }
+.status-toggle input { display: none; }
+.status-toggle input:checked + span.op-resolvido { color: var(--ok-text); }
+.status-toggle label:has(input:checked) { border-color: transparent; }
+.status-toggle label.resolvido:has(input:checked) { background: var(--ok-bg); color: var(--ok-text); }
+.status-toggle label.pendente:has(input:checked) { background: var(--pending-strip); color: #fff; }
+.acao-field { display: none; }
+.acao-field.show { display: flex; }
+.acao-field label { color: var(--pending-text); }
+.acao-field textarea { border-color: #F0D9AE; background: #FFFBF3; }
+.form-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+.banner-ok { background: var(--ok-bg); border: 1px solid var(--ok-border); border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #1E5C3A; }
+
+/* Login screen */
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 40px; max-width: 380px; width: 100%; text-align: center; display: flex; flex-direction: column; gap: 16px; }
+.login-card h1 { margin: 0; font-size: 20px; }
+.login-card p { margin: 0; font-size: 14px; color: var(--muted); }
+.google-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.google-btn:hover { background: #FAFAFA; }
+.error-msg { color: var(--urgent-text); font-size: 13px; }
+.hidden { display: none !important; }
+.loading { text-align: center; padding: 60px 0; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="app-loading" class="loading">Carregando…</div>
+
+<div id="login-screen" class="login-wrap hidden">
+  <div class="login-card">
+    <h1>Histórico de Manutenção</h1>
+    <p>Acesso restrito à equipe da Gade Imóveis. Entre com sua conta Google da empresa.</p>
+    <button id="btn-google-login" class="google-btn">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.08-1.79 2.72v2.26h2.9c1.7-1.56 2.69-3.87 2.69-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.81 5.96-2.18l-2.9-2.26c-.81.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.93v2.33C2.42 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.95 10.7c-.18-.54-.28-1.11-.28-1.7s.1-1.16.28-1.7V4.97H.93A8.996 8.996 0 000 9c0 1.45.35 2.83.93 4.03l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.42 2.02.93 4.97l3.02 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+      Entrar com Google
+    </button>
+    <div id="login-error" class="error-msg hidden"></div>
+  </div>
+</div>
+
+<div id="app-root" class="hidden">
+  <div class="page">
+    <div class="topbar">
+      <div>
+        <h1 id="page-title">Pendências</h1>
+        <span class="subtitle" id="page-subtitle">Ocorrências em aberto, de todos os imóveis</span>
+      </div>
+      <div class="header-actions">
+        <a href="#novo" class="btn btn-primary" id="btn-novo-top">+ Novo Registro</a>
+        <div class="user-chip">
+          <img id="user-photo" src="" alt="">
+          <span id="user-name"></span>
+          <a id="btn-logout" class="btn btn-ghost btn-sm" style="margin-left:6px;">Sair</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <a href="#pendencias" class="nav-link" data-view="pendencias">Pendências</a>
+      <a href="#historico" class="nav-link" data-view="historico">Histórico</a>
+    </div>
+
+    <!-- Pendências view -->
+    <div id="view-pendencias" class="view">
+      <div class="stats">
+        <div class="stat"><span class="value" id="stat-total">0</span><span class="label">Pendências em aberto</span></div>
+        <div class="stat warn"><span class="value" id="stat-urgentes">0</span><span class="label">Urgentes (+7 dias)</span></div>
+        <div class="stat"><span class="value" id="stat-imoveis">0</span><span class="label">Imóveis com pendência</span></div>
+      </div>
+      <div class="list" id="list-pendencias"></div>
+    </div>
+
+    <!-- Histórico view -->
+    <div id="view-historico" class="view hidden">
+      <form class="filters" id="form-filtros" onsubmit="return false;">
+        <input type="text" id="input-busca" placeholder="Buscar por contrato, imóvel ou descrição">
+        <select id="select-status">
+          <option value="todos">Todos os status</option>
+          <option value="pendentes">Não resolvidos</option>
+          <option value="resolvidos">Resolvidos</option>
+        </select>
+      </form>
+      <div class="list" id="list-historico"></div>
+    </div>
+
+    <!-- Novo Registro view -->
+    <div id="view-novo" class="view hidden">
+      <div class="form-card">
+        <div>
+          <h1>Novo Registro</h1>
+          <span class="subtitle">Registrar uma ligação de inquilino ou proprietário</span>
+        </div>
+        <div id="novo-erro" class="error-msg hidden"></div>
+        <form id="form-novo">
+          <div class="field-row">
+            <div class="field">
+              <label>Data</label>
+              <input type="date" id="f-data" required>
+            </div>
+            <div class="field">
+              <label>Código do Contrato</label>
+              <input type="text" id="f-contrato" required>
+            </div>
+          </div>
+          <div class="field">
+            <label>Imóvel (opcional)</label>
+            <input type="text" id="f-imovel" placeholder="Endereço ou identificação do imóvel">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Quem ligou</label>
+              <select id="f-quem-tipo">
+                <option value="Inquilino">Inquilino</option>
+                <option value="Proprietário">Proprietário</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label small">Nome de quem ligou</label>
+              <input type="text" id="f-quem-nome">
+            </div>
+            <div class="field">
+              <label class="field-label small">Telefone</label>
+              <input type="text" id="f-quem-telefone" placeholder="(00) 00000-0000">
+            </div>
+          </div>
+          <div class="field">
+            <label>Descrição do problema</label>
+            <textarea id="f-descricao" rows="4" required></textarea>
+          </div>
+          <div class="field">
+            <label>Situação</label>
+            <div class="status-toggle">
+              <label class="pendente">
+                <input type="radio" name="status" value="pendente" checked>
+                <span>Não resolvido</span>
+              </label>
+              <label class="resolvido">
+                <input type="radio" name="status" value="resolvido">
+                <span class="op-resolvido">Resolvido</span>
+              </label>
+            </div>
+          </div>
+          <div class="field acao-field show" id="acao-field">
+            <label>O que está sendo feito para resolver</label>
+            <textarea id="f-acao" rows="3"></textarea>
+          </div>
+          <div class="form-footer">
+            <a href="#pendencias" class="btn btn-ghost">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Salvar registro</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, serverTimestamp, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK72bH4c-Q926VshbD4Rn9Mq2pYDJSbzI",
+  authDomain: "historico-manutencao-locacao.firebaseapp.com",
+  projectId: "historico-manutencao-locacao",
+  storageBucket: "historico-manutencao-locacao.firebasestorage.app",
+  messagingSenderId: "846786916756",
+  appId: "1:846786916756:web:2dbcf8edc039325a1e5f81"
+};
+
+const ALLOWED_DOMAIN = "gadeimoveis.com.br";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+provider.setCustomParameters({ hd: ALLOWED_DOMAIN });
+
+const $ = (sel) => document.querySelector(sel);
+const els = {
+  loading: $("#app-loading"),
+  login: $("#login-screen"),
+  loginError: $("#login-error"),
+  root: $("#app-root"),
+  userPhoto: $("#user-photo"),
+  userName: $("#user-name"),
+};
+
+let allRegistros = [];
+let unsubscribe = null;
+
+// ---------- Auth ----------
+$("#btn-google-login").addEventListener("click", async () => {
+  els.loginError.classList.add("hidden");
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (e) {
+    els.loginError.textContent = "Não foi possível entrar. Tente novamente.";
+    els.loginError.classList.remove("hidden");
+  }
+});
+
+$("#btn-logout").addEventListener("click", () => signOut(auth));
+
+onAuthStateChanged(auth, (user) => {
+  els.loading.classList.add("hidden");
+  if (!user) {
+    els.root.classList.add("hidden");
+    els.login.classList.remove("hidden");
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    return;
+  }
+  const email = user.email || "";
+  if (!email.toLowerCase().endsWith("@" + ALLOWED_DOMAIN)) {
+    els.loginError.textContent = "Use uma conta @" + ALLOWED_DOMAIN + " para acessar.";
+    els.loginError.classList.remove("hidden");
+    signOut(auth);
+    return;
+  }
+  els.login.classList.add("hidden");
+  els.root.classList.remove("hidden");
+  els.userPhoto.src = user.photoURL || "";
+  els.userName.textContent = user.displayName || user.email;
+  startListening();
+  route();
+});
+
+// ---------- Firestore listener ----------
+function startListening() {
+  if (unsubscribe) return;
+  const q = query(collection(db, "registros"), orderBy("criado_em", "desc"));
+  unsubscribe = onSnapshot(q, (snap) => {
+    allRegistros = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+  }, (err) => {
+    console.error(err);
+  });
+}
+
+// ---------- Routing ----------
+function route() {
+  const hash = (location.hash || "#pendencias").replace("#", "");
+  document.querySelectorAll(".view").forEach(v => v.classList.add("hidden"));
+  document.querySelectorAll(".nav-link").forEach(a => a.classList.remove("active"));
+  if (hash === "novo") {
+    $("#view-novo").classList.remove("hidden");
+    $("#page-title").textContent = "Novo Registro";
+    $("#page-subtitle").textContent = "Registrar uma ligação de inquilino ou proprietário";
+    const today = new Date().toISOString().slice(0, 10);
+    if (!$("#f-data").value) $("#f-data").value = today;
+  } else if (hash === "historico") {
+    $("#view-historico").classList.remove("hidden");
+    document.querySelector('.nav-link[data-view="historico"]').classList.add("active");
+    $("#page-title").textContent = "Histórico de Manutenção";
+    $("#page-subtitle").textContent = "Todos os registros, de todos os imóveis e contratos";
+    renderHistorico();
+  } else {
+    $("#view-pendencias").classList.remove("hidden");
+    document.querySelector('.nav-link[data-view="pendencias"]').classList.add("active");
+    $("#page-title").textContent = "Pendências";
+    $("#page-subtitle").textContent = "Ocorrências em aberto, de todos os imóveis";
+    renderPendencias();
+  }
+}
+window.addEventListener("hashchange", route);
+
+function render() {
+  const hash = (location.hash || "#pendencias").replace("#", "");
+  if (hash === "historico") renderHistorico();
+  else if (hash !== "novo") renderPendencias();
+}
+
+// ---------- Helpers ----------
+function diasEmAberto(r) {
+  const criado = r.criado_em && r.criado_em.toDate ? r.criado_em.toDate() : (r.data ? new Date(r.data) : new Date());
+  const diff = Math.floor((Date.now() - criado.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, diff);
+}
+
+function cardHtml(r, mostrarDias) {
+  const dias = diasEmAberto(r);
+  const urgente = mostrarDias && dias > 7;
+  let pillDias = "";
+  if (mostrarDias) {
+    if (dias > 7) pillDias = `<span class="pill pill-urgente">${dias} ${dias === 1 ? 'dia' : 'dias'} · URGENTE</span>`;
+    else if (dias === 0) pillDias = `<span class="pill pill-pendente">Hoje</span>`;
+    else pillDias = `<span class="pill pill-pendente">${dias} ${dias === 1 ? 'dia' : 'dias'}</span>`;
+  }
+  const statusBtn = r.status === "pendente"
+    ? `<button type="button" class="pill pill-pendente" data-action="toggle" data-id="${r.id}" title="Marcar como resolvido">● Não resolvido</button>`
+    : `<button type="button" class="pill pill-resolvido" data-action="toggle" data-id="${r.id}" title="Reabrir ocorrência">● Resolvido</button>`;
+
+  let noteBox = "";
+  if (r.status === "pendente") {
+    noteBox = `
+    <div class="note-box">
+      <span class="label">EM ANDAMENTO</span>
+      ${r.acao_andamento ? `<p>${escapeHtml(r.acao_andamento)}</p>` : `<p>Nenhuma ação registrada ainda.</p>`}
+      <div class="note-form">
+        <textarea data-id="${r.id}" class="acao-input" placeholder="O que está sendo feito para resolver...">${r.acao_andamento || ""}</textarea>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="save-acao" data-id="${r.id}">Salvar</button>
+      </div>
+    </div>`;
+  }
+
+  return `
+  <div class="card ${urgente ? "urgent" : ""}">
+    <div class="card-row">
+      <div class="card-meta">
+        <span class="contrato">Contrato #${escapeHtml(r.codigo_contrato || "")}</span>
+        ${r.imovel ? `<span class="quem">${escapeHtml(r.imovel)}</span>` : ""}
+        <span class="data">${escapeHtml(r.data || "")} · ${escapeHtml(r.quem_ligou_tipo || "")}${r.quem_ligou_nome ? ` (${escapeHtml(r.quem_ligou_nome)})` : ""}</span>
+        <span class="quem">Registrado por ${escapeHtml(r.autor || "")}</span>
+      </div>
+      <p class="card-desc">${escapeHtml(r.descricao || "")}</p>
+      <div class="card-actions">
+        ${pillDias}
+        ${statusBtn}
+      </div>
+    </div>
+    ${noteBox}
+  </div>`;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function renderPendencias() {
+  const pendentes = allRegistros.filter(r => r.status === "pendente");
+  pendentes.sort((a, b) => diasEmAberto(b) - diasEmAberto(a));
+  $("#stat-total").textContent = pendentes.length;
+  $("#stat-urgentes").textContent = pendentes.filter(r => diasEmAberto(r) > 7).length;
+  $("#stat-imoveis").textContent = new Set(pendentes.map(r => r.imovel || r.codigo_contrato)).size;
+  const list = $("#list-pendencias");
+  list.innerHTML = pendentes.length
+    ? pendentes.map(r => cardHtml(r, true)).join("")
+    : `<div class="empty">Nenhuma pendência no momento.</div>`;
+  bindCardActions(list);
+}
+
+function renderHistorico() {
+  const busca = ($("#input-busca").value || "").toLowerCase();
+  const statusFiltro = $("#select-status").value;
+  let regs = allRegistros.filter(r => {
+    if (statusFiltro === "pendentes" && r.status !== "pendente") return false;
+    if (statusFiltro === "resolvidos" && r.status !== "resolvido") return false;
+    if (busca) {
+      const hay = `${r.codigo_contrato || ""} ${r.imovel || ""} ${r.descricao || ""}`.toLowerCase();
+      if (!hay.includes(busca)) return false;
+    }
+    return true;
+  });
+  const list = $("#list-historico");
+  list.innerHTML = regs.length
+    ? regs.map(r => cardHtml(r, false)).join("")
+    : `<div class="empty">Nenhum registro encontrado.</div>`;
+  bindCardActions(list);
+}
+
+$("#input-busca").addEventListener("input", renderHistorico);
+$("#select-status").addEventListener("change", renderHistorico);
+
+function bindCardActions(container) {
+  container.querySelectorAll('[data-action="toggle"]').forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const r = allRegistros.find(x => x.id === id);
+      if (!r) return;
+      const novoStatus = r.status === "pendente" ? "resolvido" : "pendente";
+      await updateDoc(doc(db, "registros", id), { status: novoStatus, atualizado_em: serverTimestamp() });
+    });
+  });
+  container.querySelectorAll('[data-action="save-acao"]').forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const textarea = container.querySelector(`.acao-input[data-id="${id}"]`);
+      await updateDoc(doc(db, "registros", id), { acao_andamento: textarea.value, atualizado_em: serverTimestamp() });
+    });
+  });
+}
+
+// ---------- Novo Registro form ----------
+document.querySelectorAll('input[name="status"]').forEach(r => {
+  r.addEventListener("change", () => {
+    const isPendente = document.querySelector('input[name="status"]:checked').value === "pendente";
+    $("#acao-field").classList.toggle("show", isPendente);
+  });
+});
+
+$("#form-novo").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const erroEl = $("#novo-erro");
+  erroEl.classList.add("hidden");
+  const status = document.querySelector('input[name="status"]:checked').value;
+  const user = auth.currentUser;
+  const payload = {
+    data: $("#f-data").value,
+    codigo_contrato: $("#f-contrato").value.trim(),
+    imovel: $("#f-imovel").value.trim(),
+    quem_ligou_tipo: $("#f-quem-tipo").value,
+    quem_ligou_nome: $("#f-quem-nome").value.trim(),
+    quem_ligou_telefone: $("#f-quem-telefone").value.trim(),
+    descricao: $("#f-descricao").value.trim(),
+    status: status,
+    acao_andamento: status === "pendente" ? $("#f-acao").value.trim() : "",
+    autor: user ? (user.displayName || user.email) : "",
+    autor_email: user ? user.email : "",
+    criado_em: serverTimestamp(),
+    atualizado_em: serverTimestamp(),
+  };
+  if (!payload.codigo_contrato || !payload.descricao || !payload.data) {
+    erroEl.textContent = "Preencha data, contrato e descrição.";
+    erroEl.classList.remove("hidden");
+    return;
+  }
+  try {
+    await addDoc(collection(db, "registros"), payload);
+    e.target.reset();
+    $("#f-data").value = new Date().toISOString().slice(0, 10);
+    $("#acao-field").classList.add("show");
+    location.hash = "#pendencias";
+  } catch (err) {
+    erroEl.textContent = "Erro ao salvar. Tente novamente.";
+    erroEl.classList.remove("hidden");
+    console.error(err);
+  }
+});
+</script>
+</body>
+</html>
