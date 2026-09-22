@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_card.html" import registro_card %}
+{% block title %}Pendências — Histórico de Manutenção{% endblock %}
+{% block content %}
+
+{% if just_saved %}
+<div class="banner-ok">✓ Registro salvo no histórico do imóvel — visível para toda a equipe abaixo.</div>
+{% endif %}
+
+<div class="topbar">
+  <div>
+    <h1>Pendências de Manutenção</h1>
+    <span class="subtitle">Visão geral de todos os imóveis — para a equipe acompanhar reclamações em aberto</span>
+  </div>
+  <a href="{{ url_for('novo') }}" class="btn btn-primary">+ Novo Registro</a>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <span class="value">{{ stats.total }}</span>
+    <span class="label">pendências em aberto</span>
+  </div>
+  <div class="stat warn">
+    <span class="value">{{ stats.urgentes }}</span>
+    <span class="label">há mais de 7 dias em aberto</span>
+  </div>
+  <div class="stat">
+    <span class="value">{{ stats.imoveis }}</span>
+    <span class="label">imóveis com ocorrência aberta</span>
+  </div>
+</div>
+
+<div class="list">
+  {% for r in pendencias %}
+    {{ registro_card(r, mostrar_dias=true) }}
+  {% else %}
+    <div class="empty">Nenhuma pendência em aberto no momento. 🎉</div>
+  {% endfor %}
+</div>
+
+{% endblock %}
