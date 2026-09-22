@@ -93,6 +93,12 @@ a { color: inherit; text-decoration: none; }
 .note-box { background: var(--pending-note-bg); border-left: 3px solid var(--pending-strip); padding: 10px 14px; border-radius: 8px; }
 .note-box .label { font-size: 11px; font-weight: 700; letter-spacing: 0.03em; color: var(--pending-text); }
 .note-box p { margin: 4px 0 0; font-size: 13px; color: var(--pending-note-text); }
+.acao-lista { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.acao-item { padding-bottom: 8px; border-bottom: 1px solid #F0DFC0; }
+.acao-item:last-child { border-bottom: none; padding-bottom: 0; }
+.acao-item p { margin: 0; font-size: 13px; color: var(--pending-note-text); }
+.acao-meta { font-size: 11px; color: #A6824C; }
+.acao-empty { margin: 4px 0 0; font-size: 13px; color: var(--pending-note-text); }
 .note-form { display: flex; gap: 8px; align-items: flex-end; margin-top: 4px; }
 .note-form textarea { flex-grow: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-family: inherit; font-size: 13px; resize: vertical; min-height: 40px; }
 .empty { text-align: center; color: var(--muted); font-size: 14px; padding: 40px 0; }
@@ -220,11 +226,20 @@ a { color: inherit; text-decoration: none; }
           </div>
           <div class="field-row">
             <div class="field">
-              <label>Quem ligou</label>
+              <label>Quem entrou em contato</label>
               <select id="f-quem-tipo">
                 <option value="Inquilino">Inquilino</option>
                 <option value="Proprietário">Proprietário</option>
                 <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Tipo de contato</label>
+              <select id="f-tipo-contato">
+                <option value="Telefone">Telefone</option>
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="E-mail">E-mail</option>
+                <option value="Pessoalmente">Pessoalmente</option>
               </select>
             </div>
           </div>
@@ -275,7 +290,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, serverTimestamp, query, orderBy
+  getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, serverTimestamp, query, orderBy, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -418,16 +433,26 @@ function cardHtml(r, mostrarDias) {
 
   let noteBox = "";
   if (r.status === "pendente") {
+    const historico = historicoAcoes(r);
+    const listaHtml = historico.length
+      ? historico.slice().reverse().map(item => `
+        <div class="acao-item">
+          <p>${escapeHtml(item.texto)}</p>
+          <span class="acao-meta">${escapeHtml(item.autor || "")}${item.em ? " · " + formatarDataHora(item.em) : ""}</span>
+        </div>`).join("")
+      : `<p class="acao-empty">Nenhuma ação registrada ainda.</p>`;
     noteBox = `
     <div class="note-box">
       <span class="label">EM ANDAMENTO</span>
-      ${r.acao_andamento ? `<p>${escapeHtml(r.acao_andamento)}</p>` : `<p>Nenhuma ação registrada ainda.</p>`}
+      <div class="acao-lista">${listaHtml}</div>
       <div class="note-form">
-        <textarea data-id="${r.id}" class="acao-input" placeholder="O que está sendo feito para resolver...">${r.acao_andamento || ""}</textarea>
+        <textarea data-id="${r.id}" class="acao-input" placeholder="Adicionar uma nova atualização..."></textarea>
         <button type="button" class="btn btn-ghost btn-sm" data-action="save-acao" data-id="${r.id}">Salvar</button>
       </div>
     </div>`;
   }
+
+  const meioContato = r.tipo_contato ? ` por ${escapeHtml(r.tipo_contato)}` : "";
 
   return `
   <div class="card ${urgente ? "urgent" : ""}">
@@ -435,7 +460,7 @@ function cardHtml(r, mostrarDias) {
       <div class="card-meta">
         <span class="contrato">Contrato #${escapeHtml(r.codigo_contrato || "")}</span>
         ${r.imovel ? `<span class="quem">${escapeHtml(r.imovel)}</span>` : ""}
-        <span class="data">${escapeHtml(r.data || "")} · ${escapeHtml(r.quem_ligou_tipo || "")}${r.quem_ligou_nome ? ` (${escapeHtml(r.quem_ligou_nome)})` : ""}</span>
+        <span class="data">${escapeHtml(r.data || "")} · ${escapeHtml(r.quem_ligou_tipo || "")}${meioContato}${r.quem_ligou_nome ? ` (${escapeHtml(r.quem_ligou_nome)})` : ""}</span>
         <span class="quem">Registrado por ${escapeHtml(r.autor || "")}</span>
       </div>
       <p class="card-desc">${escapeHtml(r.descricao || "")}</p>
@@ -446,6 +471,21 @@ function cardHtml(r, mostrarDias) {
     </div>
     ${noteBox}
   </div>`;
+}
+
+function historicoAcoes(r) {
+  if (Array.isArray(r.historico_acoes) && r.historico_acoes.length) return r.historico_acoes;
+  if (r.acao_andamento) return [{ texto: r.acao_andamento, autor: r.autor || "", em: null }];
+  return [];
+}
+
+function formatarDataHora(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch (e) {
+    return "";
+  }
 }
 
 function escapeHtml(str) {
@@ -501,7 +541,20 @@ function bindCardActions(container) {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.id;
       const textarea = container.querySelector(`.acao-input[data-id="${id}"]`);
-      await updateDoc(doc(db, "registros", id), { acao_andamento: textarea.value, atualizado_em: serverTimestamp() });
+      const texto = textarea.value.trim();
+      if (!texto) return;
+      const user = auth.currentUser;
+      const entrada = {
+        texto,
+        autor: user ? (user.displayName || user.email) : "",
+        autor_email: user ? user.email : "",
+        em: new Date().toISOString(),
+      };
+      await updateDoc(doc(db, "registros", id), {
+        historico_acoes: arrayUnion(entrada),
+        atualizado_em: serverTimestamp(),
+      });
+      textarea.value = "";
     });
   });
 }
@@ -520,17 +573,22 @@ $("#form-novo").addEventListener("submit", async (e) => {
   erroEl.classList.add("hidden");
   const status = document.querySelector('input[name="status"]:checked').value;
   const user = auth.currentUser;
+  const autorNome = user ? (user.displayName || user.email) : "";
+  const acaoInicial = status === "pendente" ? $("#f-acao").value.trim() : "";
   const payload = {
     data: $("#f-data").value,
     codigo_contrato: $("#f-contrato").value.trim(),
     imovel: $("#f-imovel").value.trim(),
     quem_ligou_tipo: $("#f-quem-tipo").value,
+    tipo_contato: $("#f-tipo-contato").value,
     quem_ligou_nome: $("#f-quem-nome").value.trim(),
     quem_ligou_telefone: $("#f-quem-telefone").value.trim(),
     descricao: $("#f-descricao").value.trim(),
     status: status,
-    acao_andamento: status === "pendente" ? $("#f-acao").value.trim() : "",
-    autor: user ? (user.displayName || user.email) : "",
+    historico_acoes: acaoInicial
+      ? [{ texto: acaoInicial, autor: autorNome, autor_email: user ? user.email : "", em: new Date().toISOString() }]
+      : [],
+    autor: autorNome,
     autor_email: user ? user.email : "",
     criado_em: serverTimestamp(),
     atualizado_em: serverTimestamp(),
