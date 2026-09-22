@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_card.html" import registro_card %}
+{% block title %}Histórico completo — Manutenção{% endblock %}
+{% block content %}
+
+<div class="topbar">
+  <div>
+    <h1>Histórico de Manutenção</h1>
+    <span class="subtitle">Todos os registros, de todos os imóveis e contratos</span>
+  </div>
+  <a href="{{ url_for('novo') }}" class="btn btn-primary">+ Novo Registro</a>
+</div>
+
+<form class="filters" method="get">
+  <input type="text" name="q" value="{{ busca }}" placeholder="Buscar por contrato, imóvel ou descrição">
+  <select name="status" onchange="this.form.submit()">
+    <option value="todos" {{ 'selected' if status_filtro == 'todos' }}>Todos os status</option>
+    <option value="pendentes" {{ 'selected' if status_filtro == 'pendentes' }}>Não resolvidos</option>
+    <option value="resolvidos" {{ 'selected' if status_filtro == 'resolvidos' }}>Resolvidos</option>
+  </select>
+  <button type="submit" class="btn btn-ghost">Filtrar</button>
+</form>
+
+<div class="list">
+  {% for r in registros %}
+    {{ registro_card(r) }}
+  {% else %}
+    <div class="empty">Nenhum registro encontrado.</div>
+  {% endfor %}
+</div>
+
+{% endblock %}
