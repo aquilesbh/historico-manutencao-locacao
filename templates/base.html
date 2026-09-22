@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Histórico de Manutenção{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="page">
+  <div class="nav">
+    <a href="{{ url_for('pendencias') }}" class="{{ 'active' if request.endpoint == 'pendencias' }}">Pendências</a>
+    <a href="{{ url_for('historico') }}" class="{{ 'active' if request.endpoint == 'historico' }}">Histórico completo</a>
+    <a href="{{ url_for('novo') }}" class="{{ 'active' if request.endpoint == 'novo' }}">Novo registro</a>
+  </div>
+  {% block content %}{% endblock %}
+</div>
+</body>
+</html>
