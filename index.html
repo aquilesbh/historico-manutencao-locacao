@@ -272,7 +272,7 @@ a { color: inherit; text-decoration: none; }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+  getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, serverTimestamp, query, orderBy
@@ -312,11 +312,18 @@ let unsubscribe = null;
 $("#btn-google-login").addEventListener("click", async () => {
   els.loginError.classList.add("hidden");
   try {
-    await signInWithPopup(auth, provider);
+    await signInWithRedirect(auth, provider);
   } catch (e) {
+    console.error(e);
     els.loginError.textContent = "Não foi possível entrar. Tente novamente.";
     els.loginError.classList.remove("hidden");
   }
+});
+
+getRedirectResult(auth).catch((e) => {
+  console.error(e);
+  els.loginError.textContent = "Não foi possível entrar. Tente novamente.";
+  els.loginError.classList.remove("hidden");
 });
 
 $("#btn-logout").addEventListener("click", () => signOut(auth));
