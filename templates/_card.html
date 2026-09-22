@@ -1,0 +1,46 @@
+{% macro registro_card(r, mostrar_dias=false) %}
+<div class="card {% if mostrar_dias and r.dias_em_aberto is defined and r.dias_em_aberto > 7 %}urgent{% endif %}">
+  <div class="card-row">
+    <div class="card-meta">
+      <span class="contrato">Contrato #{{ r.codigo_contrato }}</span>
+      {% if r.imovel %}<span class="quem">{{ r.imovel }}</span>{% endif %}
+      <span class="data">{{ r.data }} &middot; {{ r.quem_ligou_tipo }}{% if r.quem_ligou_nome %} ({{ r.quem_ligou_nome }}){% endif %}</span>
+      <span class="quem">Registrado por {{ r.autor }}</span>
+    </div>
+    <p class="card-desc">{{ r.descricao }}</p>
+    <div class="card-actions">
+      {% if mostrar_dias and r.dias_em_aberto is defined %}
+        {% if r.dias_em_aberto > 7 %}
+          <span class="pill pill-urgente">{{ r.dias_em_aberto }} {{ 'dia' if r.dias_em_aberto == 1 else 'dias' }} &middot; URGENTE</span>
+        {% elif r.dias_em_aberto == 0 %}
+          <span class="pill pill-pendente">Hoje</span>
+        {% else %}
+          <span class="pill pill-pendente">{{ r.dias_em_aberto }} {{ 'dia' if r.dias_em_aberto == 1 else 'dias' }}</span>
+        {% endif %}
+      {% endif %}
+      <form method="post" action="{{ url_for('alternar_status', registro_id=r.id) }}">
+        {% if r.status == 'pendente' %}
+          <button type="submit" class="pill pill-pendente" title="Marcar como resolvido">● Não resolvido</button>
+        {% else %}
+          <button type="submit" class="pill pill-resolvido" title="Reabrir ocorrência">● Resolvido</button>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  {% if r.status == 'pendente' %}
+  <div class="note-box">
+    <span class="label">EM ANDAMENTO</span>
+    {% if r.acao_andamento %}
+      <p>{{ r.acao_andamento }}</p>
+    {% else %}
+      <p>Nenhuma ação registrada ainda.</p>
+    {% endif %}
+    <form class="note-form" method="post" action="{{ url_for('atualizar_acao', registro_id=r.id) }}">
+      <textarea name="acao_andamento" placeholder="O que está sendo feito para resolver...">{{ r.acao_andamento }}</textarea>
+      <button type="submit" class="btn btn-ghost btn-sm">Salvar</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}
