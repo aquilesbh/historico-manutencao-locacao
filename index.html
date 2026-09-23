@@ -87,7 +87,6 @@ a { color: inherit; text-decoration: none; }
 .card-meta .contrato { font-size: 13px; font-weight: 700; color: var(--accent); }
 .card-meta .data { font-size: 13px; color: var(--muted-2); }
 .card-meta .quem { font-size: 12px; color: var(--muted-2); }
-.card-desc { flex-grow: 1; margin: 0; font-size: 15px; line-height: 1.5; min-width: 220px; }
 .card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .card form { margin: 0; }
 .note-box { background: var(--pending-note-bg); border-left: 3px solid var(--pending-strip); padding: 10px 14px; border-radius: 8px; }
@@ -138,6 +137,16 @@ a { color: inherit; text-decoration: none; }
 .error-msg { color: var(--urgent-text); font-size: 13px; }
 .hidden { display: none !important; }
 .loading { text-align: center; padding: 60px 0; color: var(--muted); }
+.app-footer { text-align: center; font-size: 11px; color: var(--muted-2); margin-top: 8px; }
+.resp-line { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.resp-line .resp-label { font-size: 11px; color: var(--muted-2); font-weight: 600; white-space: nowrap; }
+.resp-input { border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; font-size: 12px; font-family: inherit; color: var(--text); background: #fff; width: 140px; }
+.card-desc { flex-grow: 1; margin: 0; font-size: 14px; line-height: 1.5; min-width: 220px; background: #F7F5F0; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 14px; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(33,30,26,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+.modal-box { background: var(--surface); border-radius: 14px; padding: 28px; max-width: 360px; width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.modal-box h2 { margin: 0; font-size: 17px; }
+.modal-box p { margin: 0; font-size: 13px; color: var(--muted); }
+.modal-box input[type="password"] { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit; }
 </style>
 </head>
 <body>
@@ -153,6 +162,20 @@ a { color: inherit; text-decoration: none; }
       Entrar com Google
     </button>
     <div id="login-error" class="error-msg hidden"></div>
+    <div class="app-footer">v<span class="app-version-text"></span></div>
+  </div>
+</div>
+
+<div id="modal-backup" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h2>Exportar backup</h2>
+    <p>Digite a senha para exportar uma cópia de segurança de todos os registros (arquivo .json).</p>
+    <input type="password" id="backup-senha" placeholder="Senha">
+    <div id="backup-erro" class="error-msg hidden">Senha incorreta.</div>
+    <div class="form-footer">
+      <button type="button" class="btn btn-ghost" id="btn-backup-cancelar">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="btn-backup-confirmar">Exportar</button>
+    </div>
   </div>
 </div>
 
@@ -165,6 +188,7 @@ a { color: inherit; text-decoration: none; }
       </div>
       <div class="header-actions">
         <a href="#novo" class="btn btn-primary" id="btn-novo-top">+ Novo Registro</a>
+        <button type="button" class="btn btn-ghost" id="btn-backup">Backup</button>
         <div class="user-chip">
           <img id="user-photo" src="" alt="">
           <span id="user-name"></span>
@@ -176,6 +200,7 @@ a { color: inherit; text-decoration: none; }
     <div class="nav">
       <a href="#pendencias" class="nav-link" data-view="pendencias">Pendências</a>
       <a href="#historico" class="nav-link" data-view="historico">Histórico</a>
+      <a href="#relatorio" class="nav-link" data-view="relatorio">Relatório</a>
     </div>
 
     <!-- Pendências view -->
@@ -199,6 +224,28 @@ a { color: inherit; text-decoration: none; }
         </select>
       </form>
       <div class="list" id="list-historico"></div>
+    </div>
+
+    <!-- Relatório view -->
+    <div id="view-relatorio" class="view hidden">
+      <div class="filters">
+        <div class="field">
+          <label class="field-label small">Data início</label>
+          <input type="date" id="rel-data-inicio">
+        </div>
+        <div class="field">
+          <label class="field-label small">Data fim</label>
+          <input type="date" id="rel-data-fim">
+        </div>
+        <button type="button" class="btn btn-ghost" id="btn-rel-exportar" style="align-self:flex-end;">Exportar CSV</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="value" id="rel-total">0</span><span class="label">Registros no período</span></div>
+        <div class="stat"><span class="value" id="rel-resolvidos">0</span><span class="label">Resolvidos</span></div>
+        <div class="stat"><span class="value" id="rel-pendentes">0</span><span class="label">Pendentes</span></div>
+        <div class="stat"><span class="value" id="rel-prazo-medio">—</span><span class="label">Prazo médio de conclusão (dias)</span></div>
+      </div>
+      <div class="list" id="list-relatorio"></div>
     </div>
 
     <!-- Novo Registro view -->
@@ -246,7 +293,7 @@ a { color: inherit; text-decoration: none; }
           <div class="field-row">
             <div class="field">
               <label class="field-label small">Nome de quem ligou</label>
-              <input type="text" id="f-quem-nome">
+              <input type="text" id="f-quem-nome" required>
             </div>
             <div class="field">
               <label class="field-label small">Telefone</label>
@@ -256,6 +303,10 @@ a { color: inherit; text-decoration: none; }
           <div class="field">
             <label>Descrição do problema</label>
             <textarea id="f-descricao" rows="4" required></textarea>
+          </div>
+          <div class="field">
+            <label>Responsável por resolver (opcional)</label>
+            <input type="text" id="f-responsavel" placeholder="Nome do responsável">
           </div>
           <div class="field">
             <label>Situação</label>
@@ -281,6 +332,8 @@ a { color: inherit; text-decoration: none; }
         </form>
       </div>
     </div>
+
+    <div class="app-footer">Histórico de Manutenção · v<span class="app-version-text"></span></div>
   </div>
 </div>
 
@@ -303,6 +356,8 @@ const firebaseConfig = {
 };
 
 const ALLOWED_DOMAIN = "gadeimoveis.com.br";
+const APP_VERSION = "1.2.0";
+const BACKUP_SENHA = "195705";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -321,7 +376,10 @@ const els = {
 };
 
 let allRegistros = [];
+let relatorioRegs = [];
 let unsubscribe = null;
+
+document.querySelectorAll(".app-version-text").forEach(el => { el.textContent = APP_VERSION; });
 
 // ---------- Auth ----------
 $("#btn-google-login").addEventListener("click", async () => {
@@ -395,6 +453,12 @@ function route() {
     $("#page-title").textContent = "Histórico de Manutenção";
     $("#page-subtitle").textContent = "Todos os registros, de todos os imóveis e contratos";
     renderHistorico();
+  } else if (hash === "relatorio") {
+    $("#view-relatorio").classList.remove("hidden");
+    document.querySelector('.nav-link[data-view="relatorio"]').classList.add("active");
+    $("#page-title").textContent = "Relatório";
+    $("#page-subtitle").textContent = "Filtre por período e exporte os dados";
+    renderRelatorio();
   } else {
     $("#view-pendencias").classList.remove("hidden");
     document.querySelector('.nav-link[data-view="pendencias"]').classList.add("active");
@@ -408,6 +472,7 @@ window.addEventListener("hashchange", route);
 function render() {
   const hash = (location.hash || "#pendencias").replace("#", "");
   if (hash === "historico") renderHistorico();
+  else if (hash === "relatorio") renderRelatorio();
   else if (hash !== "novo") renderPendencias();
 }
 
@@ -462,6 +527,10 @@ function cardHtml(r, mostrarDias) {
         ${r.imovel ? `<span class="quem">${escapeHtml(r.imovel)}</span>` : ""}
         <span class="data">${escapeHtml(r.data || "")} · ${escapeHtml(r.quem_ligou_tipo || "")}${meioContato}${r.quem_ligou_nome ? ` (${escapeHtml(r.quem_ligou_nome)})` : ""}</span>
         <span class="quem">Registrado por ${escapeHtml(r.autor || "")}</span>
+        <div class="resp-line">
+          <span class="resp-label">Responsável:</span>
+          <input type="text" class="resp-input" data-id="${r.id}" value="${escapeHtml(r.responsavel || "")}" placeholder="—">
+        </div>
       </div>
       <p class="card-desc">${escapeHtml(r.descricao || "")}</p>
       <div class="card-actions">
@@ -527,6 +596,113 @@ function renderHistorico() {
 $("#input-busca").addEventListener("input", renderHistorico);
 $("#select-status").addEventListener("change", renderHistorico);
 
+// ---------- Relatório ----------
+function renderRelatorio() {
+  const inicio = $("#rel-data-inicio").value;
+  const fim = $("#rel-data-fim").value;
+  let regs = allRegistros.filter(r => {
+    if (inicio && (r.data || "") < inicio) return false;
+    if (fim && (r.data || "") > fim) return false;
+    return true;
+  });
+  regs = regs.slice().sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+  relatorioRegs = regs;
+
+  const resolvidos = regs.filter(r => r.status === "resolvido");
+  const pendentes = regs.filter(r => r.status === "pendente");
+  $("#rel-total").textContent = regs.length;
+  $("#rel-resolvidos").textContent = resolvidos.length;
+  $("#rel-pendentes").textContent = pendentes.length;
+
+  const prazos = resolvidos
+    .map(r => {
+      const criado = r.criado_em && r.criado_em.toDate ? r.criado_em.toDate() : null;
+      const resolvido = r.resolvido_em && r.resolvido_em.toDate ? r.resolvido_em.toDate() : null;
+      if (!criado || !resolvido) return null;
+      return (resolvido.getTime() - criado.getTime()) / (1000 * 60 * 60 * 24);
+    })
+    .filter(v => v !== null);
+  $("#rel-prazo-medio").textContent = prazos.length
+    ? (prazos.reduce((a, b) => a + b, 0) / prazos.length).toFixed(1)
+    : "—";
+
+  const list = $("#list-relatorio");
+  list.innerHTML = regs.length
+    ? regs.map(r => cardHtml(r, false)).join("")
+    : `<div class="empty">Nenhum registro no período selecionado.</div>`;
+  bindCardActions(list);
+}
+$("#rel-data-inicio").addEventListener("change", renderRelatorio);
+$("#rel-data-fim").addEventListener("change", renderRelatorio);
+
+function csvEscape(v) {
+  const s = String(v ?? "");
+  if (/[;"\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function downloadFile(content, filename, mime) {
+  const blob = new Blob(["﻿" + content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+$("#btn-rel-exportar").addEventListener("click", () => {
+  const headers = ["Data", "Contrato", "Imovel", "Quem_Contatou", "Tipo_Contato", "Nome", "Telefone", "Descricao", "Status", "Responsavel", "Data_Conclusao", "Dias_para_Conclusao", "Registrado_por"];
+  const linhas = relatorioRegs.map(r => {
+    const criado = r.criado_em && r.criado_em.toDate ? r.criado_em.toDate() : null;
+    const resolvido = r.resolvido_em && r.resolvido_em.toDate ? r.resolvido_em.toDate() : null;
+    const diasConclusao = (criado && resolvido) ? Math.round((resolvido.getTime() - criado.getTime()) / (1000 * 60 * 60 * 24)) : "";
+    return [
+      r.data || "", r.codigo_contrato || "", r.imovel || "", r.quem_ligou_tipo || "", r.tipo_contato || "",
+      r.quem_ligou_nome || "", r.quem_ligou_telefone || "", (r.descricao || "").replace(/\r?\n/g, " "),
+      r.status || "", r.responsavel || "", resolvido ? resolvido.toLocaleDateString("pt-BR") : "",
+      diasConclusao, r.autor || "",
+    ];
+  });
+  const csv = [headers, ...linhas].map(row => row.map(csvEscape).join(";")).join("\r\n");
+  downloadFile(csv, `relatorio_manutencao_${new Date().toISOString().slice(0, 10)}.csv`, "text/csv;charset=utf-8;");
+});
+
+// ---------- Backup ----------
+function serializeRegistro(r) {
+  const out = { ...r };
+  ["criado_em", "atualizado_em", "resolvido_em"].forEach(k => {
+    if (out[k] && out[k].toDate) out[k] = out[k].toDate().toISOString();
+  });
+  return out;
+}
+
+$("#btn-backup").addEventListener("click", () => {
+  $("#backup-senha").value = "";
+  $("#backup-erro").classList.add("hidden");
+  $("#modal-backup").classList.remove("hidden");
+  setTimeout(() => $("#backup-senha").focus(), 50);
+});
+$("#btn-backup-cancelar").addEventListener("click", () => {
+  $("#modal-backup").classList.add("hidden");
+});
+function confirmarBackup() {
+  const senha = $("#backup-senha").value;
+  if (senha !== BACKUP_SENHA) {
+    $("#backup-erro").classList.remove("hidden");
+    return;
+  }
+  const dados = allRegistros.map(serializeRegistro);
+  downloadFile(JSON.stringify(dados, null, 2), `backup_historico_manutencao_${new Date().toISOString().slice(0, 10)}.json`, "application/json;charset=utf-8;");
+  $("#modal-backup").classList.add("hidden");
+}
+$("#btn-backup-confirmar").addEventListener("click", confirmarBackup);
+$("#backup-senha").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); confirmarBackup(); }
+});
+
 function bindCardActions(container) {
   container.querySelectorAll('[data-action="toggle"]').forEach(btn => {
     btn.addEventListener("click", async () => {
@@ -534,7 +710,15 @@ function bindCardActions(container) {
       const r = allRegistros.find(x => x.id === id);
       if (!r) return;
       const novoStatus = r.status === "pendente" ? "resolvido" : "pendente";
-      await updateDoc(doc(db, "registros", id), { status: novoStatus, atualizado_em: serverTimestamp() });
+      const updateData = { status: novoStatus, atualizado_em: serverTimestamp() };
+      if (novoStatus === "resolvido") updateData.resolvido_em = serverTimestamp();
+      await updateDoc(doc(db, "registros", id), updateData);
+    });
+  });
+  container.querySelectorAll('.resp-input').forEach(input => {
+    input.addEventListener("change", async () => {
+      const id = input.dataset.id;
+      await updateDoc(doc(db, "registros", id), { responsavel: input.value.trim(), atualizado_em: serverTimestamp() });
     });
   });
   container.querySelectorAll('[data-action="save-acao"]').forEach(btn => {
@@ -584,6 +768,7 @@ $("#form-novo").addEventListener("submit", async (e) => {
     quem_ligou_nome: $("#f-quem-nome").value.trim(),
     quem_ligou_telefone: $("#f-quem-telefone").value.trim(),
     descricao: $("#f-descricao").value.trim(),
+    responsavel: $("#f-responsavel").value.trim(),
     status: status,
     historico_acoes: acaoInicial
       ? [{ texto: acaoInicial, autor: autorNome, autor_email: user ? user.email : "", em: new Date().toISOString() }]
@@ -592,9 +777,10 @@ $("#form-novo").addEventListener("submit", async (e) => {
     autor_email: user ? user.email : "",
     criado_em: serverTimestamp(),
     atualizado_em: serverTimestamp(),
+    resolvido_em: status === "resolvido" ? serverTimestamp() : null,
   };
-  if (!payload.codigo_contrato || !payload.descricao || !payload.data) {
-    erroEl.textContent = "Preencha data, contrato e descrição.";
+  if (!payload.codigo_contrato || !payload.quem_ligou_nome || !payload.descricao || !payload.data) {
+    erroEl.textContent = "Preencha o código do contrato, o nome de quem ligou e a descrição do problema.";
     erroEl.classList.remove("hidden");
     return;
   }
