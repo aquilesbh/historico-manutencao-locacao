@@ -359,7 +359,7 @@ const firebaseConfig = {
 };
 
 const ALLOWED_DOMAIN = "gadeimoveis.com.br";
-const APP_VERSION = "1.3.0";
+const APP_VERSION = "1.3.1";
 const BACKUP_SENHA = "195705";
 
 const app = initializeApp(firebaseConfig);
@@ -595,15 +595,24 @@ function renderPendencias() {
   bindCardActions(list);
 }
 
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function renderHistorico() {
-  const busca = ($("#input-busca").value || "").toLowerCase();
+  const busca = ($("#input-busca").value || "").trim().toLowerCase();
   const statusFiltro = $("#select-status").value;
   let regs = allRegistros.filter(r => {
     if (statusFiltro === "pendentes" && r.status !== "pendente") return false;
     if (statusFiltro === "resolvidos" && r.status !== "resolvido") return false;
     if (busca) {
-      const hay = `${r.codigo_contrato || ""} ${r.imovel || ""} ${r.descricao || ""}`.toLowerCase();
-      if (!hay.includes(busca)) return false;
+      const codigo = (r.codigo_contrato || "").toLowerCase();
+      const outros = `${r.imovel || ""} ${r.descricao || ""}`.toLowerCase();
+      // Código do contrato: casamento exato ou por palavra inteira, para que
+      // buscar "13" não traga também o contrato "135". Imóvel/descrição
+      // continuam com busca parcial normal.
+      const codigoBate = codigo === busca || new RegExp(`\\b${escapeRegExp(busca)}\\b`).test(codigo);
+      if (!codigoBate && !outros.includes(busca)) return false;
     }
     return true;
   });
