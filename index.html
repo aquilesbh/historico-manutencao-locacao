@@ -141,7 +141,9 @@ a { color: inherit; text-decoration: none; }
 .resp-line { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
 .resp-line .resp-label { font-size: 11px; color: var(--muted-2); font-weight: 600; white-space: nowrap; }
 .resp-input { border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; font-size: 12px; font-family: inherit; color: var(--text); background: #fff; width: 140px; }
-.card-desc { flex-grow: 1; margin: 0; font-size: 14px; line-height: 1.5; min-width: 220px; background: #F7F5F0; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 14px; }
+.card-desc { flex-grow: 1; margin: 0; font-size: 14px; line-height: 1.5; min-width: 220px; background: #F7F5F0; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 14px; font-family: inherit; color: var(--text); resize: vertical; width: 100%; }
+.card-desc:focus { outline: none; border-color: var(--accent); background: #fff; }
+.required-note { font-size: 12px; color: var(--muted-2); margin-top: -8px; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(33,30,26,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
 .modal-box { background: var(--surface); border-radius: 14px; padding: 28px; max-width: 360px; width: 100%; display: flex; flex-direction: column; gap: 14px; }
 .modal-box h2 { margin: 0; font-size: 17px; }
@@ -255,6 +257,7 @@ a { color: inherit; text-decoration: none; }
           <h1>Novo Registro</h1>
           <span class="subtitle">Registrar uma ligação de inquilino ou proprietário</span>
         </div>
+        <div class="required-note">* Campos obrigatórios</div>
         <div id="novo-erro" class="error-msg hidden"></div>
         <form id="form-novo">
           <div class="field-row">
@@ -263,7 +266,7 @@ a { color: inherit; text-decoration: none; }
               <input type="date" id="f-data" required>
             </div>
             <div class="field">
-              <label>Código do Contrato</label>
+              <label>Código do Contrato *</label>
               <input type="text" id="f-contrato" required>
             </div>
           </div>
@@ -292,7 +295,7 @@ a { color: inherit; text-decoration: none; }
           </div>
           <div class="field-row">
             <div class="field">
-              <label class="field-label small">Nome de quem ligou</label>
+              <label class="field-label small">Nome de quem ligou *</label>
               <input type="text" id="f-quem-nome" required>
             </div>
             <div class="field">
@@ -301,7 +304,7 @@ a { color: inherit; text-decoration: none; }
             </div>
           </div>
           <div class="field">
-            <label>Descrição do problema</label>
+            <label>Descrição do problema *</label>
             <textarea id="f-descricao" rows="4" required></textarea>
           </div>
           <div class="field">
@@ -532,7 +535,7 @@ function cardHtml(r, mostrarDias) {
           <input type="text" class="resp-input" data-id="${r.id}" value="${escapeHtml(r.responsavel || "")}" placeholder="—">
         </div>
       </div>
-      <p class="card-desc">${escapeHtml(r.descricao || "")}</p>
+      <textarea class="card-desc desc-input" data-id="${r.id}" rows="2">${escapeHtml(r.descricao || "")}</textarea>
       <div class="card-actions">
         ${pillDias}
         ${statusBtn}
@@ -719,6 +722,18 @@ function bindCardActions(container) {
     input.addEventListener("change", async () => {
       const id = input.dataset.id;
       await updateDoc(doc(db, "registros", id), { responsavel: input.value.trim(), atualizado_em: serverTimestamp() });
+    });
+  });
+  container.querySelectorAll('.desc-input').forEach(textarea => {
+    textarea.addEventListener("change", async () => {
+      const id = textarea.dataset.id;
+      const novaDescricao = textarea.value.trim();
+      if (!novaDescricao) {
+        const r = allRegistros.find(x => x.id === id);
+        textarea.value = r ? r.descricao || "" : "";
+        return;
+      }
+      await updateDoc(doc(db, "registros", id), { descricao: novaDescricao, atualizado_em: serverTimestamp() });
     });
   });
   container.querySelectorAll('[data-action="save-acao"]').forEach(btn => {
