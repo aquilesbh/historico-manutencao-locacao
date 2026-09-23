@@ -343,7 +343,7 @@ a { color: inherit; text-decoration: none; }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged
+  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, serverTimestamp, query, orderBy, arrayUnion
@@ -359,7 +359,7 @@ const firebaseConfig = {
 };
 
 const ALLOWED_DOMAIN = "gadeimoveis.com.br";
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 const BACKUP_SENHA = "195705";
 
 const app = initializeApp(firebaseConfig);
@@ -385,12 +385,30 @@ let unsubscribe = null;
 document.querySelectorAll(".app-version-text").forEach(el => { el.textContent = APP_VERSION; });
 
 // ---------- Auth ----------
+// Preferimos signInWithPopup: signInWithRedirect depende de storage entre
+// domínios (accounts.google.com -> nosso site) que muitos navegadores hoje
+// bloqueiam por padrão (cookies/armazenamento de terceiros), causando um
+// loop onde o usuário volta para a tela de login sem entrar. Popup evita
+// esse problema. Só caímos para redirect se o popup for bloqueado.
 $("#btn-google-login").addEventListener("click", async () => {
   els.loginError.classList.add("hidden");
   try {
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider);
   } catch (e) {
     console.error(e);
+    if (e && e.code === "auth/popup-closed-by-user") {
+      return;
+    }
+    if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment" || e.code === "auth/cancelled-popup-request")) {
+      try {
+        await signInWithRedirect(auth, provider);
+      } catch (e2) {
+        console.error(e2);
+        els.loginError.textContent = "Não foi possível entrar. Tente novamente.";
+        els.loginError.classList.remove("hidden");
+      }
+      return;
+    }
     els.loginError.textContent = "Não foi possível entrar. Tente novamente.";
     els.loginError.classList.remove("hidden");
   }
